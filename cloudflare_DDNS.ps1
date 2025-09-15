@@ -1,9 +1,11 @@
+<#
 
-<# 
-Cloudflare DDNS updater (Windows / PowerShell)
+- Cloudflare DDNS updater (Windows / PowerShell)
+- Author: Maarten Schmeitz (https://mrtn.blog)
 - Automatically retrieves Zone ID
 - Finds or creates A-record (IPv4)
 - Updates only when IP changes
+
 
 Fill in the variables under "CONFIG".
 #>
@@ -40,7 +42,7 @@ function Get-PublicIP {
   throw "Could not retrieve public IP from: $($Urls -join ', ')"
 }
 
-function Cf-Api {
+function Use-CfApi {
   param(
     [ValidateSet("GET","POST","PUT","PATCH","DELETE")] [string]$Method,
     [string]$Path,
@@ -66,7 +68,7 @@ try {
   }
 
   # 2) Retrieve Zone ID
-  $zoneResp = Cf-Api -Method GET -Path "zones?name=$ZoneName"
+  $zoneResp = Use-CfApi -Method GET -Path "zones?name=$ZoneName"
   if (-not $zoneResp.success -or $zoneResp.result.Count -eq 0) {
     throw "Zone '$ZoneName' not found or no access."
   }
@@ -78,7 +80,7 @@ try {
     param(
       [string]$ZoneId, [string]$RecordName, [string]$Type, [string]$Content, [int]$TTL, [bool]$Proxied
     )
-    $q = Cf-Api -Method GET -Path "zones/$ZoneId/dns_records?type=$Type&name=$RecordName"
+  $q = Use-CfApi -Method GET -Path "zones/$ZoneId/dns_records?type=$Type&name=$RecordName"
     $existing = $null
     if ($q.success -and $q.result.Count -gt 0) { $existing = $q.result[0] }
 
@@ -89,13 +91,13 @@ try {
       }
       Write-Host "[INFO] Updating: $Type $RecordName -> $Content"
       $body = @{ type=$Type; name=$RecordName; content=$Content; ttl=$TTL; proxied=$Proxied }
-      $upd = Cf-Api -Method PUT -Path "zones/$ZoneId/dns_records/$($existing.id)" -Body $body
+  $upd = Use-CfApi -Method PUT -Path "zones/$ZoneId/dns_records/$($existing.id)" -Body $body
       if (-not $upd.success) { throw "Update failed for $RecordName ($Type)." }
       Write-Host "[DONE] Updated."
     } else {
       Write-Host "[INFO] Creating: $Type $RecordName -> $Content"
       $body = @{ type=$Type; name=$RecordName; content=$Content; ttl=$TTL; proxied=$Proxied }
-      $crt = Cf-Api -Method POST -Path "zones/$ZoneId/dns_records" -Body $body
+  $crt = Use-CfApi -Method POST -Path "zones/$ZoneId/dns_records" -Body $body
       if (-not $crt.success) { throw "Creation failed for $RecordName ($Type)." }
       Write-Host "[DONE] Created."
     }
