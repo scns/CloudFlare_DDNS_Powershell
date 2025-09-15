@@ -20,7 +20,6 @@ Automatically update your dynamic IP address in Cloudflare DNS using PowerShell.
 
 ---
 
-
 ## 🚀 Setup & Usage
 
 1. Download `cloudflare_DDNS.ps1` to your system.
